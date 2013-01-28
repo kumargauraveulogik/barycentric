@@ -36,11 +36,15 @@ def bary2cart(bary, corners=None):
     if corners == None:
         corners = polycorners(bary.shape[-1])
     
-    if len(bary.shape) > 1:
-        return np.array([np.sum(b / np.sum(b) * corners.T, axis=1) for b in bary])
+    cart = None
+    
+    if len(bary.shape) > 1 and bary.shape[1] > 1:
+        cart = np.array([np.sum(b / np.sum(b) * corners.T, axis=1) for b in bary])
     else:
-        return np.sum(bary / np.sum(bary) * corners.T, axis=1)
-
+        cart = np.sum(bary / np.sum(bary) * corners.T, axis=1)
+    
+    return cart
+    
 def lattice(ncorners=3, sides=False):
     '''Create a lattice of linear combinations of barycentric coordinates with ncorners corners.
     This lattice is constructed from the corners, the center point between them, points between the
@@ -170,7 +174,7 @@ def polyshow(coords, color=None, label=None, labelvertices=False, polycolor=None
     ax.add_patch(pp.Polygon(corners, closed=True, fill=False, alpha=0.5))
     ax.scatter(corners[:,0], corners[:,1], color='red', s=50)
     if labelvertices:
-        map(lambda i: verttext(corners[i], '$v_%d$' % i), range(len(corners)))
+        map(lambda i: verttext(corners[i], '$v_{%d}$' % i), range(len(corners)))
     
     # Add any extra lines to the figure.
     map(ax.add_line, lines)
@@ -183,7 +187,7 @@ def polyshow(coords, color=None, label=None, labelvertices=False, polycolor=None
     
     return f
 
-def baryedges(coords):
+def baryedges(coords, sidecoords=None):
     '''Return an array of barycentric coordinates corresponding to the closest point on each edge 
     of the respective polygon.
         coords: np.ndarray
@@ -198,10 +202,17 @@ def baryedges(coords):
     
     e = np.zeros((d, d))                # final bary. coords. for projection to each side.
     
+    # Pairs of corners that form sides (01, 12, 20 for a triange).
+    pairs = zip(np.arange(d), np.roll(np.arange(d), -1))
+    
     # Project the point onto each edge in cartesian space, put it back into bary. coords.
-    for i1, i2 in izip(np.arange(d), np.roll(np.arange(d), 1)):
+    for i1, i2 in pairs:
         proj = project_pointline(cart, corners[i1], corners[i2])
         distances = np.array([np.linalg.norm(corners[a] - proj, 2) for a in [i1, i2]])
-        e[i1, (i1, i2)] = np.sum(distances) - distances
+        sidebary = 1.0 - distances / np.sum(distances)
+        e[i1, (i1, i2)] = sidebary
+    
+    if sidecoords:
+        return np.array([e[i1, (i1, i2)] for i1, i2 in pairs])
     
     return e

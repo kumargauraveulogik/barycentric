@@ -264,11 +264,11 @@ def voronoi(x, y):
         points; and triangles is a list of the triangles from a Delaunay triangulation.
     """
 
-    p = np.array(zip(x, y))
+    p = np.array([a for a in zip(x, y)])
     d = mpl.tri.Triangulation(x, y)
     t = d.triangles
     n = t.shape[0]
-
+    
     # Get circle for each triangle, center will be a voronoi cell point.
     cells = [[] for i in range(x.size)]                     # [[]] * x.size will have the same object at each index.
 
